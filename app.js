@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3003;
 
 // Middleware
 app.use(express.json());
@@ -60,9 +60,64 @@ app.post('/posts', (req, res) => {
 });
 
 // Default route
+// Default route
+// Default route
 app.get('/', (req, res) => {
-  res.send('Welcome to the Social Media Dashboard App!');
-});
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Social Media Dashboard App</title>
+          <style>
+            body {
+              font-family: 'Arial', sans-serif;
+              background-color: #add8e6;
+              text-align: center;
+              margin-top: 50px;
+            }
+            h1 {
+              color: #333;
+              font-size: 3em;
+              margin-bottom: 20px;
+              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            }
+            p {
+              color: #666;
+              font-size: 1.2em;
+            }
+            .app-names {
+              display: flex;
+              justify-content: center;
+              margin-top: 30px;
+            }
+            .app-names div {
+              padding: 10px 20px;
+              margin: 0 10px;
+              background-color: #0077cc;
+              color: #fff;
+              border-radius: 5px;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>Welcome to the Social Media Dashboard App!</h1>
+          <p>Explore and manage your social media accounts in one place.</p>
+          <div class="app-names">
+            <div>FaceSnap</div>
+            <div>InstaBook</div>
+            <div>TweetChat</div>
+            <!-- Add more social media app names here -->
+          </div>
+        </body>
+      </html>
+    `;
+    
+    res.send(htmlContent);
+  });
+  
+  
 
 // Start the server
 app.listen(PORT, () => {
