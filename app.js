@@ -1,6 +1,10 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
+const path = require('path');
+
 const app = express();
 const PORT = process.env.PORT || 3003;
+const SECRET_KEY = 'your_secret_key'; // Replace with your secret key
 
 // Middleware
 app.use(express.json());
@@ -8,116 +12,164 @@ app.use(express.urlencoded({ extended: true }));
 
 // Sample data (you might use a database in a real application)
 let users = [
-  { id: 1, username: 'user1', email: 'user1@example.com' },
-  { id: 2, username: 'user2', email: 'user2@example.com' },
+  { id: 1, username: 'user1', email: 'user1@example.com', password: 'password1' },
+  { id: 2, username: 'user2', email: 'user2@example.com', password: 'password2' },
 ];
 
 let posts = [
-  { userId: 1, text: 'Post 1 by User 1' },
-  { userId: 2, text: 'Post 1 by User 2' },
+  { id: 1, userId: 1, text: 'Post 1 by User 1' },
+  { id: 2, userId: 2, text: 'Post 1 by User 2' },
 ];
 
+// Function to generate a JWT token
+function generateToken(user) {
+  return jwt.sign({ userId: user.id, username: user.username }, SECRET_KEY, { expiresIn: '1h' });
+}
+
+// Middleware to authenticate users with JWT
+function authenticateJWT(req, res, next) {
+  const token = req.header('Authorization');
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+}
+
 // Routes
-
-// Get all users
-app.get('/users', (req, res) => {
-  res.json(users);
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Get a specific user by ID
-app.get('/users/:id', (req, res) => {
-  const userId = parseInt(req.params.id);
-  const user = users.find((user) => user.id === userId);
+app.get('/register', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
+
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
+});
+
+// Route to render the post form
+app.get('/post', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'post.html'));
+});
+
+// Register a new user and generate a JWT token
+app.post('/register', (req, res) => {
+  const { username, email, password } = req.body;
+  if (!username || !email || !password) {
+    return res.status(400).json({ message: 'Please provide username, email, and password' });
+  }
+
+  if (users.some((user) => user.username === username || user.email === email)) {
+    return res.status(400).json({ message: 'User already exists' });
+  }
+
+  const newUser = {
+    id: users.length + 1,
+    username,
+    email,
+    password, // In a real application, you would hash the password before storing it
+  };
+
+  users.push(newUser);
+
+  const token = generateToken(newUser);
+
+  // You can customize the success message here
+  res.status(201).json({ message: 'User registered successfully', token });
+});
+
+// Login route and generate a JWT token
+app.post('/login', (req, res) => {
+  const { username, password } = req.body;
+  const user = users.find((user) => user.username === username && user.password === password);
+
   if (!user) {
-    return res.status(404).json({ message: 'User not found' });
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
-  res.json(user);
-});
 
-// Get all posts
-app.get('/posts', (req, res) => {
-  res.json(posts);
-});
+  const token = generateToken(user);
 
-// Get posts by a specific user
-app.get('/posts/user/:userId', (req, res) => {
-  const userId = parseInt(req.params.userId);
-  const userPosts = posts.filter((post) => post.userId === userId);
-  if (userPosts.length === 0) {
-    return res.status(404).json({ message: 'Posts not found for this user' });
-  }
-  res.json(userPosts);
+  // You can customize the success message here
+  res.json({ message: 'Login successful', token });
 });
 
 // Create a new post
 app.post('/posts', (req, res) => {
-  const { userId, text } = req.body;
-  if (!userId || !text) {
-    return res.status(400).json({ message: 'Please provide userId and text for the post' });
-  }
-  posts.push({ userId, text });
-  res.status(201).json({ message: 'Post created successfully' });
+    const { text } = req.body;
+    if (!text) {
+      return res.status(400).json({ message: 'Please provide post content' });
+    }
+  
+    const newPost = {
+      userId: 1, // Assuming the post is created by the first user for simplicity
+      text,
+    };
+  
+    posts.push(newPost);
+  
+    // You can customize the success message here
+    res.status(201).json({ message: 'Post created successfully' });
+  });
+
+
+// Get paginated posts for the authenticated user (GET) with JWT authentication
+app.get('/posts', authenticateJWT, (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const pageSize = parseInt(req.query.pageSize) || 5;
+
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+
+  const userPosts = posts.filter((post) => post.userId === req.user.userId).slice(startIndex, endIndex);
+
+  res.json({
+    totalPosts: userPosts.length,
+    currentPage: page,
+    posts: userPosts,
+  });
 });
 
-// Default route
-// Default route
-// Default route
-app.get('/', (req, res) => {
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Social Media Dashboard App</title>
-          <style>
-            body {
-              font-family: 'Arial', sans-serif;
-              background-color: #add8e6;
-              text-align: center;
-              margin-top: 50px;
-            }
-            h1 {
-              color: #333;
-              font-size: 3em;
-              margin-bottom: 20px;
-              text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            }
-            p {
-              color: #666;
-              font-size: 1.2em;
-            }
-            .app-names {
-              display: flex;
-              justify-content: center;
-              margin-top: 30px;
-            }
-            .app-names div {
-              padding: 10px 20px;
-              margin: 0 10px;
-              background-color: #0077cc;
-              color: #fff;
-              border-radius: 5px;
-              font-weight: bold;
-              text-transform: uppercase;
-            }
-          </style>
-        </head>
-        <body>
-          <h1>Welcome to the Social Media Dashboard App!</h1>
-          <p>Explore and manage your social media accounts in one place.</p>
-          <div class="app-names">
-            <div>FaceSnap</div>
-            <div>InstaBook</div>
-            <div>TweetChat</div>
-            <!-- Add more social media app names here -->
-          </div>
-        </body>
-      </html>
-    `;
-    
-    res.send(htmlContent);
-  });
-  
-  
+// Update a post with JWT authentication
+app.put('/posts/:postId', authenticateJWT, (req, res) => {
+  const postId = parseInt(req.params.postId);
+  const { text } = req.body;
+
+  const postIndex = posts.findIndex((post) => post.id === postId && post.userId === req.user.userId);
+
+  if (postIndex === -1) {
+    return res.status(404).json({ message: 'Post not found' });
+  }
+
+  posts[postIndex].text = text;
+
+  // You can customize the success message here
+  res.json({ message: 'Post updated successfully', updatedPost: posts[postIndex] });
+});
+
+// Delete a post with JWT authentication
+app.delete('/posts/:postId', authenticateJWT, (req, res) => {
+  const postId = parseInt(req.params.postId);
+
+  const postIndex = posts.findIndex((post) => post.id === postId && post.userId === req.user.userId);
+
+  if (postIndex === -1) {
+    return res.status(404).json({ message: 'Post not found' });
+  }
+
+  const deletedPost = posts.splice(postIndex, 1)[0];
+
+  // You can customize the success message here
+  res.json({ message: 'Post deleted successfully', deletedPost });
+});
 
 // Start the server
 app.listen(PORT, () => {
