@@ -96,53 +96,63 @@ app.post('/register', (req, res) => {
   req.session.token = token;
 
   // You can customize the success message here
-  res.status(201).json({ message: 'User registered successfully', token });
+  res.status(201).json({ message: 'User registered successfully'});
 });
 
 // Login route and generate a JWT token
 app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-    const user = users.find((user) => user.username === username && user.password === password);
-  
-    if (!user) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-  
-    const token = generateToken(user);
-  
-    // Save the token in the session
-    req.session.token = token;
-  
-    // Redirect to the main page with the username
-    res.redirect(`/index?username=${user.username}`);
-  });
+  const { username, password } = req.body;
+  const user = users.find((user) => user.username === username && user.password === password);
 
-// Main route with JWT authentication
-app.get('/index', authenticateJWT, (req, res) => {
-  const { username } = req.user;
-  res.sendFile(path.join(__dirname, 'public', 'index.html'), { username });
-});
-
-// Create a new post
-app.post('/posts', authenticateJWT, (req, res) => {
-  const { text } = req.body;
-  if (!text) {
-    return res.status(400).json({ message: 'Please provide post content' });
+  if (!user) {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  const newPost = {
-    id: posts.length + 1,
-    userId: req.user.userId,
-    text,
-  };
+  const token = generateToken(user);
 
-  posts.push(newPost);
+  // Save the token in the session
+  req.session.token = token;
 
-  // You can customize the success message here
-  res.status(201).json({ message: 'Post created successfully' });
+  // Redirect to the main page with the username
+  res.redirect(`/index?username=${user.username}`);
 });
 
-// Get paginated posts for the authenticated user (GET) with JWT authentication
+app.get('/index', authenticateJWT, (req, res) => {
+    const { username } = req.user;
+    res.sendFile(path.join(__dirname, 'public', 'index.html'), { username });
+  });
+
+// Create a new post with JWT authentication and request validation
+app.post('/posts', authenticateJWT, (req, res) => {
+    const { text } = req.body;
+  
+    // Validate the request body
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ message: 'Please provide valid post content' });
+    }
+  
+    // Handle warnings
+    if (typeof text === 'number') {
+      console.warn('Received a post with text as a number.');
+      // You can add more custom warning logic here
+    }
+  
+    const newPost = {
+      id: posts.length + 1,
+      userId: req.user.userId,
+      text,
+    };
+  
+    posts.push(newPost);
+  
+    // You can customize the success message here
+    res.status(201).json({ message: 'Post created successfully' });
+  });
+  
+
+
+
+// Get paginated posts for the authenticated user (GET) with JWT authentication and pagination
 app.get('/posts', authenticateJWT, (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const pageSize = parseInt(req.query.pageSize) || 5;
@@ -155,6 +165,8 @@ app.get('/posts', authenticateJWT, (req, res) => {
   res.json({
     totalPosts: userPosts.length,
     currentPage: page,
+    totalPages: Math.ceil(posts.length / pageSize),
+    pageSize,
     posts: userPosts,
   });
 });
