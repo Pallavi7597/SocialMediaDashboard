@@ -1,5 +1,6 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const session = require('express-session');
 const path = require('path');
 
 const app = express();
@@ -9,6 +10,14 @@ const SECRET_KEY = 'your_secret_key'; // Replace with your secret key
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Use express-session middleware
+app.use(session({
+  secret: SECRET_KEY,
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: false }, // Set to true if using HTTPS
+}));
 
 // Sample data (you might use a database in a real application)
 let users = [
@@ -28,7 +37,7 @@ function generateToken(user) {
 
 // Middleware to authenticate users with JWT
 function authenticateJWT(req, res, next) {
-  const token = req.header('Authorization');
+  const token = req.session.token;
 
   if (!token) {
     return res.status(401).json({ message: 'Unauthorized' });
@@ -83,43 +92,55 @@ app.post('/register', (req, res) => {
 
   const token = generateToken(newUser);
 
+  // Save the token in the session
+  req.session.token = token;
+
   // You can customize the success message here
   res.status(201).json({ message: 'User registered successfully', token });
 });
 
 // Login route and generate a JWT token
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find((user) => user.username === username && user.password === password);
+    const { username, password } = req.body;
+    const user = users.find((user) => user.username === username && user.password === password);
+  
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+  
+    const token = generateToken(user);
+  
+    // Save the token in the session
+    req.session.token = token;
+  
+    // Redirect to the main page with the username
+    res.redirect(`/index?username=${user.username}`);
+  });
 
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid credentials' });
-  }
-
-  const token = generateToken(user);
-
-  // You can customize the success message here
-  res.json({ message: 'Login successful', token });
+// Main route with JWT authentication
+app.get('/index', authenticateJWT, (req, res) => {
+  const { username } = req.user;
+  res.sendFile(path.join(__dirname, 'public', 'index.html'), { username });
 });
 
 // Create a new post
-app.post('/posts', (req, res) => {
-    const { text } = req.body;
-    if (!text) {
-      return res.status(400).json({ message: 'Please provide post content' });
-    }
-  
-    const newPost = {
-      userId: 1, // Assuming the post is created by the first user for simplicity
-      text,
-    };
-  
-    posts.push(newPost);
-  
-    // You can customize the success message here
-    res.status(201).json({ message: 'Post created successfully' });
-  });
+app.post('/posts', authenticateJWT, (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ message: 'Please provide post content' });
+  }
 
+  const newPost = {
+    id: posts.length + 1,
+    userId: req.user.userId,
+    text,
+  };
+
+  posts.push(newPost);
+
+  // You can customize the success message here
+  res.status(201).json({ message: 'Post created successfully' });
+});
 
 // Get paginated posts for the authenticated user (GET) with JWT authentication
 app.get('/posts', authenticateJWT, (req, res) => {
@@ -169,6 +190,17 @@ app.delete('/posts/:postId', authenticateJWT, (req, res) => {
 
   // You can customize the success message here
   res.json({ message: 'Post deleted successfully', deletedPost });
+});
+
+// Logout route
+app.get('/logout', (req, res) => {
+  // Destroy the session and redirect to the login page
+  req.session.destroy((err) => {
+    if (err) {
+      console.error(err);
+    }
+    res.redirect('/login');
+  });
 });
 
 // Start the server
