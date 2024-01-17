@@ -52,6 +52,23 @@ function authenticateJWT(req, res, next) {
   }
 }
 
+// Middleware to check if the user is authenticated
+function requireAuth(req, res, next) {
+  const token = req.session.token;
+
+  if (!token) {
+    return res.redirect('/login');
+  }
+
+  try {
+    const decoded = jwt.verify(token, SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.redirect('/login');
+  }
+}
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -65,9 +82,14 @@ app.get('/login', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// Route to render the post form
-app.get('/post', (req, res) => {
+// Use the requireAuth middleware for routes that require authentication
+app.get('/post', requireAuth, (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'post.html'));
+});
+
+app.get('/index', requireAuth, (req, res) => {
+  const { username } = req.user;
+  res.sendFile(path.join(__dirname, 'public', 'index.html'), { username });
 });
 
 // Register a new user and generate a JWT token
@@ -95,8 +117,8 @@ app.post('/register', (req, res) => {
   // Save the token in the session
   req.session.token = token;
 
-  // You can customize the success message here
-  res.status(201).json({ message: 'User registered successfully'});
+  // Redirect to the main page with the username
+  res.redirect(`/index?username=${newUser.username}`);
 });
 
 // Login route and generate a JWT token
@@ -117,40 +139,32 @@ app.post('/login', (req, res) => {
   res.redirect(`/index?username=${user.username}`);
 });
 
-app.get('/index', authenticateJWT, (req, res) => {
-    const { username } = req.user;
-    res.sendFile(path.join(__dirname, 'public', 'index.html'), { username });
-  });
-
 // Create a new post with JWT authentication and request validation
 app.post('/posts', authenticateJWT, (req, res) => {
-    const { text } = req.body;
-  
-    // Validate the request body
-    if (!text || typeof text !== 'string') {
-      return res.status(400).json({ message: 'Please provide valid post content' });
-    }
-  
-    // Handle warnings
-    if (typeof text === 'number') {
-      console.warn('Received a post with text as a number.');
-      // You can add more custom warning logic here
-    }
-  
-    const newPost = {
-      id: posts.length + 1,
-      userId: req.user.userId,
-      text,
-    };
-  
-    posts.push(newPost);
-  
-    // You can customize the success message here
-    res.status(201).json({ message: 'Post created successfully' });
-  });
-  
+  const { text } = req.body;
 
+  // Validate the request body
+  if (!text || typeof text !== 'string') {
+    return res.status(400).json({ message: 'Please provide valid post content' });
+  }
 
+  // Handle warnings
+  if (typeof text === 'number') {
+    console.warn('Received a post with text as a number.');
+    // You can add more custom warning logic here
+  }
+
+  const newPost = {
+    id: posts.length + 1,
+    userId: req.user.userId,
+    text,
+  };
+
+  posts.push(newPost);
+
+  // You can customize the success message here
+  res.status(201).json({ message: 'Post created successfully' });
+});
 
 // Get paginated posts for the authenticated user (GET) with JWT authentication and pagination
 app.get('/posts', authenticateJWT, (req, res) => {
