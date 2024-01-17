@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const SECRET_KEY = 'your_secret_key';
 
+mongoose.set('strictQuery', false);
 mongoose.connect("mongodb://root:yourpassword@localhost:27017", { dbName: 'SocialDB' });
 
 const User = mongoose.model('User', { username: String, email: String, password: String });
