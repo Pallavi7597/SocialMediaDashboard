@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -63,14 +64,17 @@
     }
   </style>
 </head>
+
 <body>
   <header>
-    <button class="button-link" onclick="window.location.href='/register'">Register</button>
-    <button class="button-link" onclick="window.location.href='/login'">Login</button>
+    <!-- Hide login, register, and logout buttons initially -->
+    <button id="registerBtn" class="button-link" style="display: none" onclick="window.location.href='/register'">Register</button>
+    <button id="loginBtn" class="button-link" style="display: none" onclick="window.location.href='/login'">Login</button>
+    <button id="logoutBtn" class="button-link" style="display: none" onclick="logout()">Logout</button>
   </header>
 
   <h1>Welcome to the Social Media Dashboard App!</h1>
-  <p>Explore and manage your social media accounts in one place.</p>
+  <p id="welcomeMessage">Explore and manage your social media accounts in one place.</p>
 
   <div class="app-names">
     <div>FaceSnap</div>
@@ -79,6 +83,52 @@
     <!-- Add more social media app names here -->
   </div>
 
-  <button class="button-link" onclick="window.location.href='/post'">Create Post</button>
+  <button id="createPostBtn" class="button-link" style="display: none" onclick="redirectToPostCreation()">Create Post</button>
+
+  <script>
+    // Function to get the username from the query parameter in the URL
+    function getUsernameFromURL() {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get('username');
+    }
+
+    // Function to set the username and show/hide buttons based on authentication
+    function handleAuthentication() {
+      const username = getUsernameFromURL();
+
+      if (username) {
+        document.getElementById('registerBtn').style.display = 'none';
+        document.getElementById('loginBtn').style.display = 'none';
+        document.getElementById('logoutBtn').style.display = 'inline-block';
+        document.getElementById('createPostBtn').style.display = 'inline-block';
+
+        // Update the welcome message with the username
+        document.getElementById('welcomeMessage').innerText = `Welcome, ${username}!`;
+      } else {
+        document.getElementById('registerBtn').style.display = 'inline-block';
+        document.getElementById('loginBtn').style.display = 'inline-block';
+        document.getElementById('logoutBtn').style.display = 'none';
+        document.getElementById('createPostBtn').style.display = 'none';
+      }
+    }
+
+    // Function to logout and redirect to the login page
+    function logout() {
+      // You can add additional logout logic here if needed
+      window.location.href = '/logout';
+    }
+
+    // Function to redirect to the post creation page
+    function redirectToPostCreation() {
+      window.location.href = '/post';
+    }
+
+    // Set the username and handle authentication when the page loads
+    window.onload = function () {
+      getUsernameFromURL();
+      handleAuthentication();
+    };
+  </script>
 </body>
+
 </html>
