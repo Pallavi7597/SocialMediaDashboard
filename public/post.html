@@ -1,75 +1,206 @@
-<!-- post.html -->
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create Post</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            background-color: #add8e6;
-            text-align: center;
-            margin-top: 50px;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create and Manage Posts</title>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #f5f5f5;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-        .container {
-            width: 50%;
-            margin: 0 auto;
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
+    header {
+      background-color: #0077cc;
+      color: #fff;
+      padding: 20px;
+      text-align: right;
+    }
 
-        h1 {
-            color: #333;
-            font-size: 2em;
-            margin-bottom: 20px;
-        }
+    h1 {
+      color: #333;
+      font-size: 2.5em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
 
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+    .post-form {
+      width: 60%;
+      margin: 50px auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
 
-        label {
-            margin-bottom: 8px;
-        }
+    label {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+      color: #333;
+    }
 
-        textarea {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+    textarea {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
 
-        button {
-            padding: 10px 20px;
-            background-color: #0077cc;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1em;
-        }
+    button {
+      background-color: #0099ff;
+      color: #fff;
+      padding: 10px 20px;
+      font-size: 1.2em;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
 
-        button:hover {
-            background-color: #005fa3;
-        }
-    </style>
+    .post-list {
+      width: 60%;
+      margin: 30px auto;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+
+    .post {
+      border-bottom: 1px solid #ccc;
+      padding: 10px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .post-text {
+      flex-grow: 1;
+      margin-right: 10px;
+      font-size: 1.1em;
+      color: #333;
+    }
+
+    .edit-post-btn,
+    .delete-post-btn {
+      padding: 8px;
+      margin-right: 5px;
+      cursor: pointer;
+      background-color: #0099ff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>Create Post</h1>
-        <form action="/posts" method="post">
-            <label for="text">Post Content:</label>
-            <textarea id="text" name="text" rows="4" required></textarea>
-            <br>
-            <button type="submit">Post</button>
-        </form>
-    </div>
+  <header>
+    <!-- Include the logout button -->
+    <button id="logoutBtn" onclick="logout()">Logout</button>
+  </header>
+
+  <h1>Create and Manage Posts</h1>
+
+  <div class="post-form">
+    <label for="text">Create a new post:</label>
+    <textarea id="text" name="text" rows="4" required></textarea>
+    <button onclick="createPost()">Create Post</button>
+  </div>
+
+  <div class="post-list" id="postList"></div>
+
+  <script>
+    // Sample posts (replace with actual data from the server)
+    const posts = [];
+
+    function createPost() {
+      const text = document.getElementById('text').value;
+      if (text) {
+        // Simulate adding a new post to the list
+        const newPost = { id: posts.length + 1, text };
+        posts.push(newPost);
+        updatePostList();
+        // Clear the textarea
+        document.getElementById('text').value = '';
+      }
+    }
+
+    function deletePost(postId) {
+      // Simulate deleting a post from the list
+      const index = posts.findIndex(post => post.id === postId);
+      if (index !== -1) {
+        posts.splice(index, 1);
+        updatePostList();
+      }
+    }
+
+    function editPost(postId) {
+      const newText = prompt('Edit the post:', posts.find(post => post.id === postId).text);
+      if (newText !== null) {
+        // Simulate editing the post
+        const index = posts.findIndex(post => post.id === postId);
+        if (index !== -1) {
+          posts[index].text = newText;
+          updatePostList();
+        }
+      }
+    }
+
+    function updatePostList() {
+      const postList = document.getElementById('postList');
+      postList.innerHTML = '';
+
+      if (posts.length === 0) {
+        postList.innerHTML = '<p>No posts available.</p>';
+        return;
+      }
+
+      posts.forEach(post => {
+        const postElement = document.createElement('div');
+        postElement.classList.add('post');
+
+        const postText = document.createElement('div');
+        postText.classList.add('post-text');
+        postText.textContent = post.text;
+
+        const editButton = document.createElement('span');
+        editButton.classList.add('edit-post-btn');
+        editButton.textContent = 'Edit';
+        editButton.onclick = () => editPost(post.id);
+
+        const deleteButton = document.createElement('span');
+        deleteButton.classList.add('delete-post-btn');
+        deleteButton.textContent = 'Delete';
+        deleteButton.onclick = () => deletePost(post.id);
+
+        postElement.appendChild(postText);
+        postElement.appendChild(editButton);
+        postElement.appendChild(deleteButton);
+
+        postList.appendChild(postElement);
+      });
+    }
+
+    // Function to logout and redirect to the login page
+    function logout() {
+      // You can add additional logout logic here if needed
+      window.location.href = '/logout';
+    }
+
+    // Initialize the post list when the page loads
+    window.onload = function () {
+      updatePostList();
+    };
+  </script>
 </body>
+
 </html>
