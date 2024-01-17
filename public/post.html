@@ -99,12 +99,30 @@
       border: none;
       border-radius: 4px;
     }
+
+    .pagination {
+      margin-top: 20px;
+    }
+
+    .pagination button {
+      background-color: #0099ff;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      margin: 0 5px;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .pagination button:hover {
+      background-color: #0077cc;
+    }
   </style>
 </head>
 
 <body>
   <header>
-    <!-- Include the logout button -->
     <button id="logoutBtn" onclick="logout()">Logout</button>
   </header>
 
@@ -118,24 +136,24 @@
 
   <div class="post-list" id="postList"></div>
 
+  <div class="pagination" id="pagination"></div>
+
   <script>
-    // Sample posts (replace with actual data from the server)
     const posts = [];
+    const postsPerPage = 3; // Adjust the number of posts per page
+    let currentPage = 1;
 
     function createPost() {
       const text = document.getElementById('text').value;
       if (text) {
-        // Simulate adding a new post to the list
         const newPost = { id: posts.length + 1, text };
         posts.push(newPost);
         updatePostList();
-        // Clear the textarea
         document.getElementById('text').value = '';
       }
     }
 
     function deletePost(postId) {
-      // Simulate deleting a post from the list
       const index = posts.findIndex(post => post.id === postId);
       if (index !== -1) {
         posts.splice(index, 1);
@@ -146,7 +164,6 @@
     function editPost(postId) {
       const newText = prompt('Edit the post:', posts.find(post => post.id === postId).text);
       if (newText !== null) {
-        // Simulate editing the post
         const index = posts.findIndex(post => post.id === postId);
         if (index !== -1) {
           posts[index].text = newText;
@@ -157,14 +174,18 @@
 
     function updatePostList() {
       const postList = document.getElementById('postList');
+      const pagination = document.getElementById('pagination');
+      const startIndex = (currentPage - 1) * postsPerPage;
+      const endIndex = startIndex + postsPerPage;
       postList.innerHTML = '';
 
       if (posts.length === 0) {
         postList.innerHTML = '<p>No posts available.</p>';
+        pagination.innerHTML = '';
         return;
       }
 
-      posts.forEach(post => {
+      posts.slice(startIndex, endIndex).forEach(post => {
         const postElement = document.createElement('div');
         postElement.classList.add('post');
 
@@ -188,15 +209,28 @@
 
         postList.appendChild(postElement);
       });
+
+      const totalPages = Math.ceil(posts.length / postsPerPage);
+      pagination.innerHTML = '';
+
+      // Display up to 5 pages from the start
+      const maxPages = Math.min(5, totalPages);
+
+      for (let i = 1; i <= maxPages; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.textContent = i;
+        pageButton.onclick = () => {
+          currentPage = i;
+          updatePostList();
+        };
+        pagination.appendChild(pageButton);
+      }
     }
 
-    // Function to logout and redirect to the login page
     function logout() {
-      // You can add additional logout logic here if needed
       window.location.href = '/logout';
     }
 
-    // Initialize the post list when the page loads
     window.onload = function () {
       updatePostList();
     };
