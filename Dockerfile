@@ -1,14 +1,19 @@
-# Use Node.js 14 LTS version as the base image
-FROM node:14
+FROM node:18.12.1-bullseye-slim
 
-WORKDIR /src/app
+# Set the working directory in the container
+WORKDIR /app
 
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
+# Install app dependencies
 RUN npm install
 
+# Copy necessary files
 COPY . .
 
-EXPOSE 5000
+# Expose port 3000 (adjust the port based on your application)
+EXPOSE 3000
 
-CMD ["node", "./app.js"]
+# CMD to run the application
+CMD [ "node", "app.js" ]
